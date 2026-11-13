@@ -153,12 +153,7 @@ export function summarize(pass) {
   const departure = sem.currentDepartureDate || sem.originalDepartureDate || dateField?.value
     || pass.relevantDate || pass.relevantDates?.[0]?.startDate || pass.relevantDates?.[0]?.date || pass.expirationDate || '';
 
-  let passenger = '';
-  if (sem.passengerName) {
-    const n = sem.passengerName;
-    passenger = [n.givenName, n.familyName].filter(Boolean).join(' ');
-  }
-  if (!passenger) passenger = val(find(/passenger|pasajer|\bname\b|nombre|traveller|viajero/i) || find(/passenger|pasajer|nombre/i, back));
+  const passenger = passengerName(pass, all, back);
 
   return {
     style: passStyle(pass),
@@ -180,6 +175,44 @@ export function summarize(pass) {
     pnr: sem.confirmationNumber || val(find(/pnr|confirm|localizador|reserva|booking|record/i) || find(/pnr|localizador|reserva|booking/i, back)),
     voided: pass.voided === true,
   };
+}
+
+// Nombre del pasajero. Orden de fiabilidad: datos semánticos, campo del frente
+// claramente etiquetado, código de barras IATA y, por último, etiquetas genéricas.
+const PAX_RE = /passenger|pasajer|passag|passegg|\bpax\b|travell?er|viajero|reisende|fluggast/i;
+const NAME_RE = /\bname\b|nombre|\bnom\b|\bnome\b/i;
+const NOT_PAX_RE = /airline|aerol|carrier|operat|compa[nñ]|company|frequent|frecuente|loyalty|fideli|member|miembro|socio|program|lounge|sala|\btier\b|status|info|aviso|notice|condi|terms|legal|contact|document|equipaje|baggage/i;
+
+function passengerName(pass, front, back) {
+  const n = pass.semantics?.passengerName;
+  if (n) {
+    const full = [n.givenName, n.familyName].filter(Boolean).join(' ').trim();
+    if (full) return full;
+  }
+  const id = (f) => `${f.key || ''} ${f.label || ''}`;
+  // Un nombre es corto y de una sola línea; así se descartan textos informativos.
+  const nameLike = (f) => {
+    const v = fieldText(f).trim();
+    return v.length >= 2 && v.length <= 48 && !/[\n\r]|https?:|@/.test(v) && !isIsoDate(f.value) && /\p{L}{2}/u.test(v);
+  };
+  const pick = (list, re) => list.find((f) => re.test(id(f)) && !NOT_PAX_RE.test(id(f)) && nameLike(f));
+
+  const labelled = pick(front, PAX_RE);
+  if (labelled) return fieldText(labelled).trim();
+  const fromBarcode = bcbpName(passBarcode(pass)?.message);
+  if (fromBarcode) return fromBarcode;
+  const generic = pick(front, NAME_RE) || pick(back, PAX_RE);
+  return generic ? fieldText(generic).trim() : '';
+}
+
+// Los códigos de embarque IATA (BCBP) empiezan por "M" + nº de tramos y llevan
+// el nombre en los 20 caracteres siguientes, como "APELLIDO/NOMBRE".
+function bcbpName(message) {
+  const m = typeof message === 'string' && message.length >= 30 && message.match(/^M[1-9]([A-Z'/ -]{20})/);
+  if (!m) return '';
+  const [family, given] = m[1].trim().split('/');
+  if (!family || family.length < 2) return '';
+  return [given, family].filter(Boolean).map((x) => x.trim()).join(' ');
 }
 
 function shortCode(v) {

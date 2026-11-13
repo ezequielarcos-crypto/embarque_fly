@@ -1,7 +1,7 @@
-// Panel principal: próximo vuelo y estadísticas.
+// Panel principal: próximo vuelo y resto de tarjetas activas.
 
-import { esc, fmtDayLong, fmtTime, fmtMonth, countdown } from '../format.js';
-import { listCards, stats, nextFlight, monthly, departureTime, cardState, STATES } from '../cards.js';
+import { esc, fmtDayLong, fmtTime, countdown } from '../format.js';
+import { listCards, nextFlight, departureTime, cardState } from '../cards.js';
 import { icon } from '../ui.js';
 import { ticketItem } from './ticket.js';
 
@@ -10,7 +10,6 @@ const flaps = (text, n = 3) => [...String(text || '').padEnd(n, ' ').slice(0, Ma
 
 export async function renderHome(root, ctx) {
   const cards = await listCards();
-  const st = stats(cards);
   const next = nextFlight(cards);
   const today = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 
@@ -22,85 +21,11 @@ export async function renderHome(root, ctx) {
 
     ${next ? heroNext(next) : cards.length ? heroIdle() : heroEmpty()}
 
-    <section class="section" aria-labelledby="h-stats">
-      <h2 class="sign" id="h-stats"><span class="sign__pict">${icon('i-chart')}</span>Estadísticas</h2>
-      <div class="stats">
-        ${tile('total', 'Creadas', st.total, 'tarjetas en el dispositivo', 'i-ticket')}
-        ${tile('activa', 'Activas', st.activa, pct(st.activa, st.total), STATES.activa.icon)}
-        ${tile('completada', 'Voladas', st.completada, pct(st.completada, st.total), STATES.completada.icon)}
-        ${tile('cancelada', 'Canceladas', st.cancelada, pct(st.cancelada, st.total), STATES.cancelada.icon)}
-      </div>
-      ${st.total ? distribution(st) : ''}
-    </section>
-
-    ${st.total ? `
-    <section class="section" aria-labelledby="h-months">
-      <h2 class="sign" id="h-months"><span class="sign__pict">${icon('i-calendar')}</span>Vuelos por mes</h2>
-      ${monthsChart(monthly(cards))}
-    </section>` : ''}
-
     ${upcoming(cards, next)}
   `;
 
   root.querySelector('[data-action="demo"]')?.addEventListener('click', () => ctx.loadDemo());
   root.querySelector('[data-action="browse"]')?.addEventListener('click', () => ctx.browse());
-}
-
-function pct(n, total) {
-  if (!total) return 'sin tarjetas aún';
-  return `${Math.round((n / total) * 100)} % del total`;
-}
-
-function tile(kind, label, value, caption, ic) {
-  return `<div class="stat stat--${kind}">
-    <div class="stat__head">${icon(ic)}<span>${esc(label)}</span></div>
-    <div class="stat__value">${value}</div>
-    <div class="stat__caption">${esc(caption)}</div>
-  </div>`;
-}
-
-function distribution(st) {
-  const parts = ['activa', 'completada', 'cancelada'].filter((k) => st[k] > 0);
-  return `<div class="dist" role="img" aria-label="${parts.map((k) => `${STATES[k].label}: ${st[k]}`).join(', ')}">
-    <div class="dist__bar">
-      ${parts.map((k) => `<span class="dist__seg dist__seg--${k}" style="flex-grow:${st[k]}" title="${STATES[k].label}: ${st[k]}"></span>`).join('')}
-    </div>
-    <ul class="legend">
-      ${['activa', 'completada', 'cancelada'].map((k) => `<li><span class="legend__key legend__key--${k}"></span>${STATES[k].label} <b>${st[k]}</b></li>`).join('')}
-    </ul>
-  </div>`;
-}
-
-function monthsChart(months) {
-  const max = Math.max(1, ...months.map((m) => m.activa + m.completada + m.cancelada));
-  const keys = ['cancelada', 'completada', 'activa'];
-  return `<div class="chart">
-    <ul class="legend legend--top">
-      ${['activa', 'completada', 'cancelada'].map((k) => `<li><span class="legend__key legend__key--${k}"></span>${STATES[k].label}</li>`).join('')}
-    </ul>
-    <div class="chart__plot" style="--max:${max}">
-      <span class="chart__max">${max}</span>
-      ${months.map((m) => {
-        const total = m.activa + m.completada + m.cancelada;
-        const name = fmtMonth(m.year, m.month);
-        return `<button type="button" class="chart__col${m.current ? ' is-current' : ''}" aria-label="${esc(name)} ${m.year}: ${total} tarjetas">
-          <span class="chart__stack" style="height:${(total / max) * 100}%">
-            ${keys.filter((k) => m[k]).map((k) => `<span class="chart__seg chart__seg--${k}" style="flex-grow:${m[k]}"></span>`).join('')}
-          </span>
-          <span class="chart__label">${esc(name)}</span>
-          <span class="chart__tip" role="tooltip">
-            <b>${esc(name)} ${m.year}</b>
-            ${['activa', 'completada', 'cancelada'].map((k) => `<span><i class="legend__key legend__key--${k}"></i>${STATES[k].label}<b>${m[k]}</b></span>`).join('')}
-          </span>
-        </button>`;
-      }).join('')}
-    </div>
-    <table class="sr-only">
-      <caption>Tarjetas por mes de vuelo</caption>
-      <tr><th>Mes</th><th>Activas</th><th>Voladas</th><th>Canceladas</th></tr>
-      ${months.map((m) => `<tr><td>${fmtMonth(m.year, m.month)} ${m.year}</td><td>${m.activa}</td><td>${m.completada}</td><td>${m.cancelada}</td></tr>`).join('')}
-    </table>
-  </div>`;
 }
 
 function heroNext(card) {

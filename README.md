@@ -13,7 +13,7 @@ Sencilla, en español, funciona **sin conexión** y todos los datos se quedan **
 - **Modo puerta de embarque**: código a pantalla completa sobre fondo blanco y pantalla siempre encendida.
 - **Gestionar**: cancelar / reactivar, notas, descargar o compartir el `.pkpass` original, eliminar, buscar y filtrar.
 - **Crear manualmente** una tarjeta si no tienes el archivo.
-- **Panel** con el próximo vuelo (cuenta atrás) y estadísticas: tarjetas creadas, activas, voladas y canceladas, más un gráfico por mes.
+- **Panel** con el próximo vuelo (cuenta atrás) y el resto de tarjetas activas. En *Tarjetas*, los filtros muestran cuántas hay activas, voladas y canceladas.
 - **Copia de seguridad** exportable/importable en JSON, tema claro/oscuro y almacenamiento persistente.
 
 Si se vuelve a importar la misma tarjeta (mismo `passTypeIdentifier` + `serialNumber`), se actualiza en lugar de duplicarse.

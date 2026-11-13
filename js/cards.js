@@ -35,9 +35,17 @@ export function sortKey(card) {
   return departureTime(card)?.at.getTime() ?? card.createdAt;
 }
 
+// El resumen se recalcula al leer para que las mejoras en la extracción de datos
+// (p. ej. el nombre del pasajero) lleguen también a las tarjetas ya guardadas.
+const fresh = (card) => (card ? { ...card, summary: summarize(card.pass) } : card);
+
 export async function listCards() {
-  const cards = await db.all();
+  const cards = (await db.all()).map(fresh);
   return cards.sort((a, b) => sortKey(a) - sortKey(b));
+}
+
+export async function getCard(id) {
+  return fresh(await db.get(id));
 }
 
 export async function importFile(file) {
@@ -133,23 +141,6 @@ export function nextFlight(cards, now = Date.now()) {
   return cards
     .filter((c) => cardState(c, now) === 'activa' && departureTime(c))
     .sort((a, b) => sortKey(a) - sortKey(b))[0] || null;
-}
-
-// Tarjetas agrupadas por mes de vuelo: 5 meses atrás + mes actual + 6 por delante.
-export function monthly(cards, now = new Date()) {
-  const months = [];
-  for (let i = -5; i <= 6; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    months.push({ year: d.getFullYear(), month: d.getMonth(), current: i === 0, activa: 0, completada: 0, cancelada: 0 });
-  }
-  for (const c of cards) {
-    const w = wallClock(c.summary?.departure) || { date: new Date(c.createdAt) };
-    const y = w.date.getUTCFullYear();
-    const m = w.date.getUTCMonth();
-    const slot = months.find((x) => x.year === y && x.month === m);
-    if (slot) slot[cardState(c, now.getTime())]++;
-  }
-  return months;
 }
 
 // Copia de seguridad: los Blobs se convierten a data URL para guardarlos en JSON.

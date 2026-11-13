@@ -8,7 +8,7 @@ import { renderDetail } from './views/detail.js';
 import { renderAdd } from './views/add.js';
 import { renderSettings } from './views/settings.js';
 
-const VERSION = '1.0.0';
+const VERSION = '2.0.0';
 const SHARED_CACHE = 'embarque-shared';
 const view = document.getElementById('view');
 let installEvent = null;

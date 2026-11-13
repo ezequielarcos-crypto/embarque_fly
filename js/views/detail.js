@@ -2,14 +2,14 @@
 
 import { esc, fmtStamp, fmtDayLong, fmtTime } from '../format.js';
 import { db } from '../db.js';
-import { cardState, setStatus, setNotes } from '../cards.js';
+import { cardState, getCard, setStatus, setNotes } from '../cards.js';
 import { passBarcode } from '../pkpass.js';
 import { renderPass, renderBackFields } from '../render-pass.js';
 import { mountBarcode } from '../barcode.js';
 import { icon, stateBadge, toast, confirmDialog, download } from '../ui.js';
 
 export async function renderDetail(root, ctx, params, id) {
-  const card = await db.get(id);
+  const card = await getCard(id);
   if (!card) {
     root.innerHTML = `<div class="empty"><div class="empty__art">${icon('i-ticket')}</div>
       <h2>Tarjeta no encontrada</h2><p>Puede que se haya eliminado.</p>
