@@ -137,7 +137,7 @@ export function summarize(pass) {
   const all = FIELD_GROUPS.filter((g) => g !== 'backFields').flatMap((g) => fields[g]);
   const back = fields.backFields;
   const find = (re, list = all) => list.find((f) => re.test(`${f.key || ''} ${f.label || ''}`));
-  const val = (f) => (f ? fieldText(f) : '');
+  const val = (f) => (f ? fieldText(f).trim() : '');
 
   const [o, d] = fields.primaryFields;
   const origin = sem.departureAirportCode || (o ? String(o.value ?? '') : '');
@@ -168,11 +168,11 @@ export function summarize(pass) {
     boarding: sem.originalBoardingDate || sem.currentBoardingDate || val(find(/board.*time|hora.*embar|boarding/i)),
     seat: sem.seats?.[0]?.seatNumber ? `${sem.seats[0].seatRow || ''}${sem.seats[0].seatNumber}` : val(find(/seat|asiento|plaza/i)),
     gate: sem.departureGate || val(find(/gate|puerta/i)),
-    terminal: sem.departureTerminal || val(find(/terminal/i)),
+    terminal: sem.departureTerminal || val(all.find((f) => /terminal/i.test(`${f.key} ${f.label}`) && !/gate|puerta/i.test(`${f.key} ${f.label}`))),
     group: val(find(/group|grupo|zone|zona|sequence|secuencia/i)),
-    cabin: val(find(/class|clase|cabin|cabina/i)),
+    cabin: val(find(/class|clase|cabin|cabina/i) || find(/class|clase|cabin|cabina/i, back)),
     passenger,
-    pnr: sem.confirmationNumber || val(find(/pnr|confirm|localizador|reserva|booking|record/i) || find(/pnr|localizador|reserva|booking/i, back)),
+    pnr: sem.confirmationNumber || val(find(PNR_RE) || find(PNR_RE, back)),
     voided: pass.voided === true,
   };
 }
@@ -180,6 +180,8 @@ export function summarize(pass) {
 // Nombre del pasajero. Orden de fiabilidad: datos semánticos, campo del frente
 // claramente etiquetado, código de barras IATA y, por último, etiquetas genéricas.
 const PAX_RE = /passenger|pasajer|passag|passegg|\bpax\b|travell?er|viajero|reisende|fluggast/i;
+// "booking" identifica el localizador salvo cuando es la clase de reserva (bookingClass).
+const PNR_RE = /pnr|locator|localizador|confirm|reserva|record|booking(?!.?class)/i;
 const NAME_RE = /\bname\b|nombre|\bnom\b|\bnome\b/i;
 const NOT_PAX_RE = /airline|aerol|carrier|operat|compa[nñ]|company|frequent|frecuente|loyalty|fideli|member|miembro|socio|program|lounge|sala|\btier\b|status|info|aviso|notice|condi|terms|legal|contact|document|equipaje|baggage/i;
 
@@ -198,11 +200,22 @@ function passengerName(pass, front, back) {
   const pick = (list, re) => list.find((f) => re.test(id(f)) && !NOT_PAX_RE.test(id(f)) && nameLike(f));
 
   const labelled = pick(front, PAX_RE);
-  if (labelled) return fieldText(labelled).trim();
+  if (labelled) return tidyName(fieldText(labelled));
   const fromBarcode = bcbpName(passBarcode(pass)?.message);
   if (fromBarcode) return fromBarcode;
   const generic = pick(front, NAME_RE) || pick(back, PAX_RE);
-  return generic ? fieldText(generic).trim() : '';
+  return generic ? tidyName(fieldText(generic)) : '';
+}
+
+// Las aerolíneas escriben "APELLIDO/NOMBRE" (a veces con tratamiento: MR, MRS…).
+// Se muestra como "NOMBRE APELLIDO".
+function tidyName(value) {
+  const v = String(value).replace(/\s+/g, ' ').trim();
+  const parts = v.split('/');
+  if (parts.length !== 2) return v;
+  const family = parts[0].trim();
+  const given = parts[1].trim().replace(/\s+(MR|MRS|MS|MISS|MSTR|DR|SR|SRA|SRTA|CHD|INF)\.?$/i, '');
+  return family && given ? `${given} ${family}` : v.replace('/', ' ').trim();
 }
 
 // Los códigos de embarque IATA (BCBP) empiezan por "M" + nº de tramos y llevan

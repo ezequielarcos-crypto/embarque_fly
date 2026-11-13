@@ -1,5 +1,11 @@
 # Cambios
 
+## 2.0.1
+
+- El nombre del pasajero se muestra como «NOMBRE APELLIDO» en lugar de «APELLIDO /NOMBRE».
+- El localizador ya no se confunde con la clase de reserva, y la clase se lee también del reverso.
+- Los campos que la aerolínea envía vacíos (p. ej. puerta sin asignar) dejan de mostrarse en blanco.
+
 ## 2.0.0
 
 - Inicio más limpio: se eliminan los apartados «Estadísticas» y «Vuelos por mes».
