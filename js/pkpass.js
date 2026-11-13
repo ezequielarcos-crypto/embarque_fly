@@ -1,7 +1,7 @@
 // Lectura de archivos .pkpass y extracción de los datos de vuelo.
 
 import { readZip, ZipError } from './zip.js';
-import { instant, isIsoDate, formatPassDate, fmtNumber } from './format.js';
+import { instant, isIsoDate, formatPassDate, fmtNumber, textDateToNumeric } from './format.js';
 
 export const PASS_STYLES = ['boardingPass', 'eventTicket', 'coupon', 'generic', 'storeCard'];
 const IMAGE_NAMES = ['logo', 'icon', 'strip', 'thumbnail', 'footer', 'background'];
@@ -127,7 +127,7 @@ export function fieldText(f) {
   if (v == null) return '';
   if ((f.dateStyle || f.timeStyle) && isIsoDate(v)) return formatPassDate(v, f.dateStyle, f.timeStyle);
   if (typeof v === 'number' || f.currencyCode || f.numberStyle) return fmtNumber(v, f.numberStyle, f.currencyCode);
-  return String(v);
+  return textDateToNumeric(v) ?? String(v);
 }
 
 // Resumen normalizado para listas, estadísticas y búsquedas.

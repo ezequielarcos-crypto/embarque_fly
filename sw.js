@@ -1,6 +1,6 @@
 // Service worker: funcionamiento sin conexión y recepción de archivos compartidos.
 
-const VERSION = 'embarque-v2.0.1';
+const VERSION = 'embarque-v2.1.0';
 const SHARED_CACHE = 'embarque-shared';
 
 const ASSETS = [

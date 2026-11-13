@@ -47,16 +47,43 @@ const STYLE = {
 export function formatPassDate(v, dateStyle, timeStyle) {
   const w = wallClock(v);
   if (!w) return String(v);
-  const opts = { timeZone: 'UTC' };
   const ds = STYLE[dateStyle];
   const ts = STYLE[timeStyle];
-  if (ds) opts.dateStyle = ds === 'short' ? 'medium' : ds;
-  if (ts && w.hasTime) opts.timeStyle = 'short';
-  if (!ds && !ts) {
-    opts.dateStyle = 'medium';
-    if (w.hasTime) opts.timeStyle = 'short';
-  }
-  return new Intl.DateTimeFormat(LOCALE, opts).format(w.date);
+  const showDate = Boolean(ds) || !ts;
+  const showTime = w.hasTime && (Boolean(ts) || !ds);
+  return [showDate && fmtDate(v), showTime && fmtTime(v)].filter(Boolean).join(' ');
+}
+
+// Fecha numérica DD/MM/AAAA, sin nombres de día ni de mes.
+const numeric = (y, m, d) => `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+
+export function fmtDate(v) {
+  const w = wallClock(v);
+  if (!w) return '';
+  return numeric(w.date.getUTCFullYear(), w.date.getUTCMonth() + 1, w.date.getUTCDate());
+}
+
+// Fecha y hora de 24 h: "12/11/2026 16:10".
+export function fmtDateTime(v) {
+  return [fmtDate(v), fmtTime(v)].filter(Boolean).join(' ');
+}
+
+const MONTHS = ['jan|ene', 'feb', 'mar', 'apr|abr', 'may', 'jun', 'jul', 'aug|ago', 'sep|set', 'oct', 'nov', 'dec|dic'];
+const monthIndex = (name) => MONTHS.findIndex((m) => new RegExp(`^(${m})`, 'i').test(name)) + 1;
+
+// Muchas aerolíneas envían la fecha ya escrita ("12 Nov 2026", "Nov 12, 2026", "12NOV26").
+// Si el texto completo es una fecha, se pasa a DD/MM/AAAA; si no, devuelve null.
+export function textDateToNumeric(text) {
+  const t = String(text).trim();
+  let m = t.match(/^(\d{1,2})[\s.\-/]*(?:de\s+)?([a-záéíóú]{3,12})\.?[\s.\-/,]*(?:de\s+)?(\d{4}|\d{2})$/i);
+  let d; let mon; let y;
+  if (m) [, d, mon, y] = m;
+  else if ((m = t.match(/^([a-záéíóú]{3,12})\.?\s+(\d{1,2}),?\s+(\d{4})$/i))) [, mon, d, y] = m;
+  else return null;
+  const month = monthIndex(mon);
+  const day = Number(d);
+  if (!month || day < 1 || day > 31) return null;
+  return numeric(y.length === 2 ? `20${y}` : y, month, day);
 }
 
 export function fmtDay(v) {

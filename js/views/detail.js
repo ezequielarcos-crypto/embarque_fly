@@ -1,6 +1,6 @@
 // Detalle de una tarjeta: visualización, modo embarque y gestión.
 
-import { esc, fmtStamp, fmtDayLong, fmtTime } from '../format.js';
+import { esc, fmtStamp, fmtDateTime } from '../format.js';
 import { db } from '../db.js';
 import { cardState, getCard, setStatus, setNotes } from '../cards.js';
 import { passBarcode } from '../pkpass.js';
@@ -25,7 +25,7 @@ export async function renderDetail(root, ctx, params, id) {
   const info = [
     ['Pasajero', s.passenger],
     ['Vuelo', s.flight],
-    ['Salida', s.departure ? `${fmtDayLong(s.departure)}${fmtTime(s.departure) ? ` · ${fmtTime(s.departure)}` : ''}` : ''],
+    ['Salida', fmtDateTime(s.departure)],
     ['Localizador', s.pnr],
     ['Terminal', s.terminal],
     ['Puerta', s.gate],

@@ -1,5 +1,13 @@
 # Cambios
 
+## 2.1.0
+
+- Fechas en formato numérico `DD/MM/AAAA` y hora de 24 h, sin nombres de día ni de mes:
+  el campo «Salida» de la tarjeta muestra, por ejemplo, `12/11/2026 16:10`, igual que
+  el resumen del vuelo. Si la aerolínea solo indica la fecha, se añade la hora de salida.
+- Las demás fechas de la tarjeta (también las que llegan escritas, como «12 Nov 2026»)
+  usan el mismo formato numérico.
+
 ## 2.0.1
 
 - El nombre del pasajero se muestra como «NOMBRE APELLIDO» en lugar de «APELLIDO /NOMBRE».

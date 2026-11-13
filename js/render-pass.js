@@ -1,6 +1,6 @@
 // Dibuja la tarjeta con el aspecto definido en su pass.json (colores, logo, campos).
 
-import { esc } from './format.js';
+import { esc, fmtDate, fmtTime } from './format.js';
 import { passFields, passBarcode, fieldText } from './pkpass.js';
 import { blobUrl, icon } from './ui.js';
 
@@ -21,11 +21,24 @@ const ALIGN = {
   PKTextAlignmentNatural: 'left',
 };
 
+// Salida de la tarjeta que se está dibujando (renderPass es síncrono).
+let departure = '';
+const DEPARTURE_RE = /depart|salida|sortie|abflug|partida/i;
+
+// El campo de salida se muestra como "DD/MM/AAAA HH:MM". Si la aerolínea solo puso
+// la fecha y coincide con el día de salida del vuelo, se le añade la hora.
+function displayText(f) {
+  const text = fieldText(f);
+  const time = fmtTime(departure);
+  if (time && text === fmtDate(departure) && DEPARTURE_RE.test(`${f.key || ''} ${f.label || ''}`)) return `${text} ${time}`;
+  return text;
+}
+
 function field(f, cls = '') {
   const align = ALIGN[f.textAlignment] ? ` style="text-align:${ALIGN[f.textAlignment]}"` : '';
   return `<div class="pf ${cls}"${align}>
     <span class="pf__label">${esc(f.label ?? '')}</span>
-    <span class="pf__value">${esc(fieldText(f)) || '&nbsp;'}</span>
+    <span class="pf__value">${esc(displayText(f)) || '&nbsp;'}</span>
   </div>`;
 }
 
@@ -41,6 +54,7 @@ export function passColors(pass) {
 
 export function renderPass(card, { barcode = true } = {}) {
   const { pass, images = {} } = card;
+  departure = card.summary?.departure || '';
   const f = passFields(pass);
   const c = passColors(pass);
   const bc = passBarcode(pass);
